@@ -1,0 +1,220 @@
+@model ItransitionCourseProject.Models.ViewModels.PositionDetailsResponse
+
+@{
+    ViewData["Title"] = Model.Title;
+    var isCandidate = User.IsInRole(nameof(UserRole.Candidate));
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+@if (isAuthenticated)
+{
+    @Html.AntiForgeryToken()
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+    <div>
+        <a asp-controller="View" asp-action="Positions" class="small">← Back to positions</a>
+        <h1 class="mt-2 mb-1">@Model.Title</h1>
+        <p class="text-body-secondary mb-0">@Model.ShortDescription</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header">CV attributes</div>
+            <div class="card-body">
+                @if (Model.Attributes.Count == 0)
+                {
+                    <span class="text-body-secondary">This position does not select any attributes.</span>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var item in Model.Attributes)
+                        {
+                            <li class="list-group-item px-0 d-flex justify-content-between gap-3">
+                                <span>
+                                    <strong>@item.Name</strong>
+                                    <span class="text-body-secondary">— @item.Category</span>
+                                </span>
+                                <span>
+                                    @if (item.IsRequired)
+                                    {
+                                        <span class="badge text-bg-danger">Required</span>
+                                    }
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Discussion</div>
+            <div class="card-body">
+                <div id="discussion-list" class="vstack gap-3 mb-4">
+                    <span class="text-body-secondary">Loading messages...</span>
+                </div>
+
+                @if (isAuthenticated)
+                {
+                    <form id="discussion-form">
+                        <label for="discussion-message" class="form-label">New message (Markdown)</label>
+                        <textarea id="discussion-message" class="form-control" rows="3" maxlength="5000" required></textarea>
+                        <button type="submit" class="btn btn-primary mt-2">Send</button>
+                        <div id="discussion-status" class="small mt-2" role="status"></div>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="View" asp-action="Login" class="btn btn-outline-secondary">
+                        Sign in to join the discussion
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header">Position technology tags</div>
+            <div class="card-body">
+                @if (Model.ProjectTags.Count == 0)
+                {
+                    <span class="text-body-secondary">No technology tags specified.</span>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var tag in Model.ProjectTags)
+                        {
+                            <span class="badge text-bg-light border">@tag</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (isCandidate)
+        {
+            <div class="card">
+                <div class="card-body d-grid">
+                    <button id="create-position-cv" type="button" class="btn btn-primary">
+                        Create or open my CV
+                    </button>
+                    <div id="create-cv-status" class="small mt-2" role="status"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const app = window.cvApp;
+            const positionId = "@Model.PositionId";
+            const discussionList = document.getElementById("discussion-list");
+            let lastMessageTime = null;
+
+            function appendDiscussion(message) {
+                document.getElementById("discussion-empty")?.remove();
+                const article = document.createElement("article");
+                article.className = "border-bottom pb-3";
+
+                const header = document.createElement("div");
+                header.className = "d-flex justify-content-between gap-3 mb-1";
+
+                const author = document.createElement("strong");
+                author.textContent = message.authorName;
+
+                const date = document.createElement("span");
+                date.className = "small text-body-secondary";
+                date.textContent = new Date(message.createdAt).toLocaleString();
+
+                const content = document.createElement("div");
+                content.className = "text-break";
+                content.textContent = message.contentMarkdown;
+
+                header.append(author, date);
+                article.append(header, content);
+                discussionList.append(article);
+            }
+
+            async function loadDiscussions() {
+                try {
+                    const query = lastMessageTime
+                        ? `?after=${encodeURIComponent(lastMessageTime)}`
+                        : "";
+                    const messages = await app.request(
+                        `/api/positions/${positionId}/discussions${query}`
+                    );
+
+                    if (lastMessageTime === null) {
+                        discussionList.replaceChildren();
+                    }
+
+                    messages.forEach(message => {
+                        appendDiscussion(message);
+                        lastMessageTime = message.createdAt;
+                    });
+
+                    if (discussionList.children.length === 0) {
+                        const empty = document.createElement("span");
+                        empty.id = "discussion-empty";
+                        empty.className = "text-body-secondary";
+                        empty.textContent = "No messages yet.";
+                        discussionList.append(empty);
+                    }
+                } catch {
+                    if (lastMessageTime === null) {
+                        discussionList.textContent = "Messages could not be loaded.";
+                    }
+                }
+            }
+
+            loadDiscussions();
+            window.setInterval(loadDiscussions, 3000);
+
+            const discussionForm = document.getElementById("discussion-form");
+            if (discussionForm) {
+                discussionForm.addEventListener("submit", async event => {
+                    event.preventDefault();
+                    const messageInput = document.getElementById("discussion-message");
+                    const status = document.getElementById("discussion-status");
+
+                    try {
+                        await app.request(`/api/positions/${positionId}/discussions`, {
+                            method: "POST",
+                            body: { contentMarkdown: messageInput.value }
+                        });
+                        messageInput.value = "";
+                        app.showStatus(status, "Message sent.");
+                        await loadDiscussions();
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                    }
+                });
+            }
+
+            const createButton = document.getElementById("create-position-cv");
+            if (createButton) {
+                createButton.addEventListener("click", async () => {
+                    const status = document.getElementById("create-cv-status");
+                    createButton.disabled = true;
+                    try {
+                        const cv = await app.request(`/api/cvs/for-position/${positionId}`, {
+                            method: "POST"
+                        });
+                        window.location.assign(`/cvs/${cv.cvId}`);
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                        createButton.disabled = false;
+                    }
+                });
+            }
+        })();
+    </script>
+}

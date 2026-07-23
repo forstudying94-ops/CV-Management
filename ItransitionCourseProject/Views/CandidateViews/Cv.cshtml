@@ -1,0 +1,210 @@
+@model ItransitionCourseProject.Models.ViewModels.CvDetailsResponse
+
+@{
+    ViewData["Title"] = Model.PositionTitle + " CV";
+    var canEdit = User.IsInRole(nameof(UserRole.Candidate));
+    var canLike = User.IsInRole(nameof(UserRole.Recruiter)) || User.IsInRole(nameof(UserRole.Admin));
+}
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+    <div>
+        <a asp-controller="View"
+           asp-action="@(canEdit ? "Profile" : "Recruit")"
+           asp-route-tab="cvs"
+           class="small">← Back</a>
+        <h1 class="mt-2 mb-1">@Model.PositionTitle</h1>
+        <p class="text-body-secondary mb-0">
+            @Model.CandidateName · @Model.CandidateLocation
+        </p>
+    </div>
+    <div class="text-md-end">
+        <span id="cv-status-badge"
+              class="badge @(Model.Status == CvStatus.Published ? "text-bg-success" : "text-bg-secondary")">
+            @Model.Status
+        </span>
+        <div class="small text-body-secondary mt-2">
+            Likes: <span id="cv-like-count">@Model.LikeCount</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">Candidate</div>
+            <div class="card-body d-flex align-items-center gap-3">
+                @if (!string.IsNullOrWhiteSpace(Model.CandidatePhotoUrl))
+                {
+                    <img src="@Model.CandidatePhotoUrl"
+                         width="72"
+                         height="72"
+                         class="rounded border"
+                         style="object-fit: cover"
+                         alt="Candidate photo"/>
+                }
+                <div>
+                    <h2 class="h5 mb-1">@Model.CandidateName</h2>
+                    <div class="text-body-secondary">@Model.CandidateLocation</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Attributes</div>
+            <div class="card-body">
+                @if (Model.Attributes.Count == 0)
+                {
+                    <span class="text-body-secondary">This CV has no selected attributes.</span>
+                }
+                else
+                {
+                    <div class="vstack gap-3">
+                        @foreach (var item in Model.Attributes)
+                        {
+                            var missing = item.IsRequired && string.IsNullOrWhiteSpace(item.Value);
+                            <div class="cv-attribute @(missing ? "border border-danger rounded p-3" : null)"
+                                 data-attribute-id="@item.AttributeId"
+                                 data-version="@item.ValueVersion">
+                                <label class="form-label">
+                                    @item.Name
+                                    @if (item.IsRequired)
+                                    {
+                                        <span class="text-danger">*</span>
+                                    }
+                                    <span class="text-body-secondary small">(@item.Category)</span>
+                                </label>
+
+                                @if (canEdit)
+                                {
+                                    <textarea class="form-control cv-attribute-value" rows="4">@item.Value</textarea>
+                                }
+                                else
+                                {
+                                    <div class="@(missing ? "text-danger" : null)">
+                                        @(string.IsNullOrWhiteSpace(item.Value) ? "Not provided" : item.Value)
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card position-sticky" style="top: 1rem">
+            <div class="card-header">Actions</div>
+            <div class="card-body d-grid gap-2">
+                @if (canEdit)
+                {
+                    <button id="send-cv" type="button" class="btn btn-success">Send CV</button>
+                    <div class="form-text">
+                        The CV will be saved and sent to recruiters. Every required attribute must be filled.
+                    </div>
+                }
+
+                @if (canLike)
+                {
+                    <button id="like-cv"
+                            type="button"
+                            class="btn btn-outline-primary">
+                        @(Model.LikedByCurrentRecruiter ? "Remove like" : "Like CV")
+                    </button>
+                }
+
+                <div id="cv-action-status" class="small mt-2" role="status"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const app = window.cvApp;
+            const cvId = "@Model.CvId";
+            let cvVersion = @Model.Version;
+            const status = document.getElementById("cv-action-status");
+
+            function collectValues() {
+                return [...document.querySelectorAll(".cv-attribute")].map(attribute => {
+                    const input = attribute.querySelector(".cv-attribute-value");
+                    return {
+                        attributeId: attribute.dataset.attributeId,
+                        value: input.type === "checkbox" ? String(input.checked) : input.value,
+                        version: Number(attribute.dataset.version)
+                    };
+                });
+            }
+
+            const sendButton = document.getElementById("send-cv");
+            if (sendButton) {
+                sendButton.addEventListener("click", async () => {
+                    sendButton.disabled = true;
+                    status.textContent = "Sending...";
+                    status.className = "small mt-2 text-body-secondary";
+
+                    try {
+                        const saved = await app.request(`/api/cvs/${cvId}`, {
+                            method: "PUT",
+                            body: {
+                                version: cvVersion,
+                                values: collectValues()
+                            }
+                        });
+                        cvVersion = saved.version;
+                        document.querySelectorAll(".cv-attribute").forEach(attribute => {
+                            const key = Object.keys(saved.versions).find(
+                                item => item.toLowerCase() === attribute.dataset.attributeId.toLowerCase()
+                            );
+                            if (key) attribute.dataset.version = saved.versions[key];
+                        });
+
+                        const result = await app.request(`/api/cvs/${cvId}/publish`, {
+                            method: "POST"
+                        });
+                        cvVersion = result.version;
+                        document.getElementById("cv-status-badge").textContent = "Published";
+                        document.getElementById("cv-status-badge").className = "badge text-bg-success";
+                        app.showStatus(status, "CV sent.");
+                    } catch (error) {
+                        const empty = error.details?.emptyAttributes;
+                        app.showStatus(
+                            status,
+                            empty?.length
+                                ? `Fill required attributes: ${empty.join(", ")}`
+                                : error.message,
+                            true
+                        );
+                    } finally {
+                        sendButton.disabled = false;
+                    }
+                });
+            }
+
+            const likeButton = document.getElementById("like-cv");
+            if (likeButton) {
+                likeButton.addEventListener("click", async () => {
+                    likeButton.disabled = true;
+                    try {
+                        const result = await app.request(`/api/cvs/${cvId}/like`, {
+                            method: "POST"
+                        });
+                        document.getElementById("cv-like-count").textContent = result.likeCount;
+                        const wasLiked = likeButton.textContent.trim() === "Remove like";
+                        likeButton.textContent = wasLiked ? "Like CV" : "Remove like";
+                        app.showStatus(status, wasLiked ? "Like removed." : "CV liked.");
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                    } finally {
+                        likeButton.disabled = false;
+                    }
+                });
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,114 @@
+@model ItransitionCourseProject.Models.ViewModels.HomeStatisticsResponse
+
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="mb-4">
+    <h1>CV Management System</h1>
+    <p class="text-body-secondary">
+        Candidates create profiles and CVs. Recruiters manage positions and attributes.
+    </p>
+
+    <a asp-controller="View" asp-action="Positions" class="btn btn-primary">
+        View positions
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Positions</div>
+                <div class="fs-3 fw-bold">@Model.Positions</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Candidates</div>
+                <div class="fs-3 fw-bold">@Model.Candidates</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Recruiters</div>
+                <div class="fs-3 fw-bold">@Model.Recruiters</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">CVs in 24 hours</div>
+                <div class="fs-3 fw-bold">@Model.CvsLast24Hours</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                Recent positions
+            </div>
+
+            @if (Model.RecentPositions.Count == 0)
+            {
+                <div class="card-body text-body-secondary">No positions yet.</div>
+            }
+            else
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var position in Model.RecentPositions)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between gap-3">
+                                <strong>
+                                    <a asp-controller="View"
+                                       asp-action="Position"
+                                       asp-route-positionId="@position.PositionId">@position.Title</a>
+                                </strong>
+                            </div>
+                            <div class="small text-body-secondary mt-1">
+                                @position.ShortDescription
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header">Top positions by CV count</div>
+            <ul class="list-group list-group-flush">
+                @if (Model.TopPositions.Count == 0)
+                {
+                    <li class="list-group-item text-body-secondary">No data yet.</li>
+                }
+                else
+                {
+                    @foreach (var position in Model.TopPositions)
+                    {
+                        <li class="list-group-item d-flex justify-content-between gap-3">
+                            <a asp-controller="View"
+                               asp-action="Position"
+                               asp-route-positionId="@position.PositionId">@position.Title</a>
+                            <span class="badge text-bg-primary">@position.CvCount</span>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+    </div>
+</div>

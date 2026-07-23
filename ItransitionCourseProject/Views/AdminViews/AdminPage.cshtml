@@ -1,0 +1,242 @@
+@model ItransitionCourseProject.Models.ViewModels.AdminPageViewModel
+
+@{
+    ViewData["Title"] = "Administration";
+    var totalPages = Math.Max(
+        1,
+        (Model.Users.TotalCount + Model.Users.PageSize - 1) / Model.Users.PageSize);
+}
+
+@Html.AntiForgeryToken()
+
+<h1 class="mb-4">Admin panel</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Users</div>
+                <div class="fs-3 fw-bold">@Model.Users.TotalCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Candidates</div>
+                <div class="fs-3 fw-bold">@Model.Statistics.Candidates</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Recruiters</div>
+                <div class="fs-3 fw-bold">@Model.Statistics.Recruiters</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">CVs</div>
+                <div class="fs-3 fw-bold">@Model.Statistics.Cvs</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">Users</div>
+            @if (Model.Users.Items.Count == 0)
+            {
+                <div class="card-body text-body-secondary">No users.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th class="text-center">Select</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var user in Model.Users.Items)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <input class="form-check-input user-selector"
+                                           type="radio"
+                                           name="selected-user"
+                                           value="@user.UserId"
+                                           aria-label="Select @user.Name"
+                                           data-name="@user.Name"
+                                           data-email="@user.Email"
+                                           data-role="@((int)user.Role)"
+                                           data-blocked="@user.IsBlocked.ToString().ToLowerInvariant()"
+                                           data-version="@user.Version"/>
+                                </td>
+                                <td>
+                                    <strong>@user.Name</strong>
+                                    <div class="small text-body-secondary">@user.Email</div>
+                                </td>
+                                <td><span class="badge text-bg-light border">@user.Role</span></td>
+                                <td>
+                                    @if (user.IsBlocked)
+                                    {
+                                        <span class="badge text-bg-danger">Blocked</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-success">Active</span>
+                                    }
+                                </td>
+                                <td>@user.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @if (totalPages > 1)
+        {
+            <nav class="mt-3" aria-label="User pages">
+                <ul class="pagination">
+                    @for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+                    {
+                        <li class="page-item @(pageNumber == Model.Users.Page ? "active" : null)">
+                            <a class="page-link"
+                               asp-controller="View"
+                               asp-action="Admin"
+                               asp-route-page="@pageNumber">@pageNumber</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card position-sticky" style="top: 1rem">
+            <div class="card-header">Selected user</div>
+            <div class="card-body">
+                <div id="admin-empty-selection" class="text-body-secondary">
+                    Select a user in the table.
+                </div>
+
+                <div id="admin-user-actions" hidden>
+                    <h2 id="selected-user-name" class="h5 mb-1"></h2>
+                    <div id="selected-user-email" class="small text-body-secondary mb-4"></div>
+
+                    <label for="selected-user-role" class="form-label">Role</label>
+                    <select id="selected-user-role" class="form-select mb-3">
+                        @foreach (var role in Enum.GetValues<UserRole>())
+                        {
+                            <option value="@((int)role)">@role</option>
+                        }
+                    </select>
+
+                    <div class="d-grid gap-2">
+                        <button id="save-user-role" type="button" class="btn btn-primary">Save role</button>
+                        <button id="toggle-user-block" type="button" class="btn btn-outline-secondary"></button>
+                        <button id="delete-user" type="button" class="btn btn-outline-danger">Delete account</button>
+                    </div>
+
+                    <div id="admin-action-status" class="small mt-3" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const requestToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const emptySelection = document.getElementById("admin-empty-selection");
+            const actions = document.getElementById("admin-user-actions");
+            const name = document.getElementById("selected-user-name");
+            const email = document.getElementById("selected-user-email");
+            const role = document.getElementById("selected-user-role");
+            const blockButton = document.getElementById("toggle-user-block");
+            const status = document.getElementById("admin-action-status");
+            let selectedUser = null;
+
+            document.querySelectorAll(".user-selector").forEach(selector => {
+                selector.addEventListener("change", () => {
+                    selectedUser = {
+                        id: selector.value,
+                        name: selector.dataset.name,
+                        email: selector.dataset.email,
+                        role: Number(selector.dataset.role),
+                        blocked: selector.dataset.blocked === "true",
+                        version: Number(selector.dataset.version)
+                    };
+
+                    emptySelection.hidden = true;
+                    actions.hidden = false;
+                    name.textContent = selectedUser.name;
+                    email.textContent = selectedUser.email;
+                    role.value = selectedUser.role;
+                    blockButton.textContent = selectedUser.blocked ? "Unblock user" : "Block user";
+                    status.textContent = "";
+                });
+            });
+
+            async function send(url, method, body) {
+                status.textContent = "Saving...";
+                status.className = "small mt-3 text-body-secondary";
+
+                const response = await fetch(url, {
+                    method,
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "RequestVerificationToken": requestToken
+                    },
+                    body: body === null ? null : JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    status.textContent = error.message ?? "The operation failed.";
+                    status.className = "small mt-3 text-danger";
+                    return;
+                }
+
+                window.location.reload();
+            }
+
+            document.getElementById("save-user-role").addEventListener("click", () => {
+                if (selectedUser === null) return;
+                send(`/api/admin/users/${selectedUser.id}/role`, "PUT", {
+                    role: Number(role.value),
+                    version: selectedUser.version
+                });
+            });
+
+            blockButton.addEventListener("click", () => {
+                if (selectedUser === null) return;
+                send(`/api/admin/users/${selectedUser.id}/blocked`, "PUT", {
+                    isBlocked: !selectedUser.blocked,
+                    version: selectedUser.version
+                });
+            });
+
+            document.getElementById("delete-user").addEventListener("click", () => {
+                if (selectedUser === null) return;
+                if (!confirm(`Delete ${selectedUser.name}? This action cannot be undone.`)) return;
+                send(`/api/admin/users/${selectedUser.id}`, "DELETE", null);
+            });
+        })();
+    </script>
+}

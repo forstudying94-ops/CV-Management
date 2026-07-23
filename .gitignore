@@ -1,0 +1,12 @@
+.DS_Store
+.idea/
+.vs/
+.vscode/
+**/bin/
+**/obj/
+**/*.user
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Local.json

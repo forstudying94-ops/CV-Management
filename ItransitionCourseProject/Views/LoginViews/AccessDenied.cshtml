@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "Access denied";
+}
+
+<div class="content-card text-center py-5">
+    <div class="empty-state-mark">403</div>
+    <h1 class="h3 mt-3">Access denied</h1>
+    <p class="text-body-secondary">
+        Your account does not have permission to open this page.
+    </p>
+    <a asp-controller="View" asp-action="Index" class="btn btn-primary">
+        Return home
+    </a>
+</div>

@@ -1,0 +1,537 @@
+@model ItransitionCourseProject.Models.ViewModels.RecruitPageViewModel
+
+@{
+    ViewData["Title"] = "Recruitment";
+    var attributePages = Math.Max(
+        1,
+        (Model.Attributes.TotalCount + Model.Attributes.PageSize - 1) / Model.Attributes.PageSize);
+}
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Recruitment panel</h1>
+        <p class="text-body-secondary mb-0">Manage positions, attributes and published CVs.</p>
+    </div>
+
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Positions</div>
+                <div class="fs-3 fw-bold">@Model.Positions.Count</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Attributes found</div>
+                <div class="fs-3 fw-bold">@Model.Attributes.TotalCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-body-secondary">Published CVs</div>
+                <div class="fs-3 fw-bold">@Model.PublishedCvs.Count</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#positions-panel" type="button">
+            Positions
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#attributes-panel" type="button">
+            Attributes
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cvs-panel" type="button">
+            Published CVs
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <section id="positions-panel" class="tab-pane fade show active">
+        <div class="row g-4">
+            <div class="col-xl-7">
+                <div class="card">
+                    <div class="card-header">Position pool</div>
+                    @if (Model.Positions.Count == 0)
+                    {
+                        <div class="card-body text-body-secondary">No positions found.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>Position</th>
+                                    <th>CVs</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var position in Model.Positions)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="radio"
+                                                   name="selected-position"
+                                                   class="form-check-input position-selector"
+                                                   value="@position.PositionId"
+                                                   aria-label="Select @position.Title"/>
+                                        </td>
+                                        <td>
+                                            <a asp-controller="View"
+                                               asp-action="Position"
+                                               asp-route-positionId="@position.PositionId">@position.Title</a>
+                                            <div class="small text-body-secondary">@position.ShortDescription</div>
+                                        </td>
+                                        <td>@position.CvCount</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <div class="col-xl-5">
+                <div class="card">
+                    <div class="card-header" id="position-editor-title">New position</div>
+                    <div class="card-body">
+                        <form id="position-form" class="vstack gap-3">
+                            <input id="position-id" type="hidden"/>
+                            <input id="position-version" type="hidden" value="0"/>
+
+                            <div>
+                                <label for="position-title" class="form-label">Title</label>
+                                <input id="position-title" class="form-control" maxlength="200" required/>
+                            </div>
+                            <div>
+                                <label for="position-description" class="form-label">Short description</label>
+                                <textarea id="position-description" class="form-control" rows="3" maxlength="1000"></textarea>
+                            </div>
+                            <div>
+                                <label for="position-tags" class="form-label">Position technology tags</label>
+                                <input id="position-tags"
+                                       class="form-control"
+                                       placeholder="C#, PostgreSQL, Docker"/>
+                                <div class="form-text">Separate tags with commas.</div>
+                            </div>
+
+                            <details>
+                                <summary class="mb-2">CV attributes</summary>
+                                <div class="border rounded p-2 overflow-auto" style="max-height: 260px">
+                                    @if (Model.AttributeOptions.Count == 0)
+                                    {
+                                        <span class="text-body-secondary">Create attributes first.</span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var item in Model.AttributeOptions)
+                                        {
+                                            <div class="position-attribute-row border-bottom py-2"
+                                                 data-attribute-id="@item.AttributeId">
+                                                <div class="form-check">
+                                                    <input class="form-check-input position-attribute"
+                                                           type="checkbox"
+                                                           id="position-attribute-@item.AttributeId"
+                                                           value="@item.AttributeId"/>
+                                                    <label class="form-check-label"
+                                                           for="position-attribute-@item.AttributeId">
+                                                        @item.Name
+                                                        <span class="small text-body-secondary">
+                                                            (@item.Category)
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-check ms-4">
+                                                    <input class="form-check-input position-attribute-required"
+                                                           type="checkbox"
+                                                           checked/>
+                                                    <label class="form-check-label small">Required for publish</label>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </details>
+
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary">Save</button>
+                                <button id="new-position" type="button" class="btn btn-outline-secondary">New</button>
+                                <button id="duplicate-position"
+                                        type="button"
+                                        class="btn btn-outline-secondary"
+                                        disabled>
+                                    Duplicate
+                                </button>
+                                <button id="delete-position"
+                                        type="button"
+                                        class="btn btn-outline-danger"
+                                        disabled>
+                                    Delete
+                                </button>
+                            </div>
+                        </form>
+                        <div id="position-status" class="small mt-2" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="attributes-panel" class="tab-pane fade">
+        <div class="row g-4">
+            <div class="col-xl-7">
+                <div class="card">
+                    <div class="card-header">Attribute library</div>
+                    @if (Model.Attributes.Items.Count == 0)
+                    {
+                        <div class="card-body text-body-secondary">No attributes found.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var item in Model.Attributes.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="radio"
+                                                   name="selected-attribute"
+                                                   class="form-check-input attribute-selector"
+                                                   value="@item.AttributeId"
+                                                   data-name="@item.Name"
+                                                   data-category="@item.Category"
+                                                   data-version="@item.Version"
+                                                   data-system="@item.IsSystem.ToString().ToLowerInvariant()"/>
+                                        </td>
+                                        <td>@item.Name</td>
+                                        <td>@item.Category</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                @if (attributePages > 1)
+                {
+                    <nav class="mt-3" aria-label="Attribute pages">
+                        <ul class="pagination">
+                            @for (var pageNumber = 1; pageNumber <= attributePages; pageNumber++)
+                            {
+                                <li class="page-item @(pageNumber == Model.Attributes.Page ? "active" : null)">
+                                    <a class="page-link"
+                                       asp-controller="View"
+                                       asp-action="Recruit"
+                                       asp-route-tab="attributes"
+                                       asp-route-attributePage="@pageNumber">@pageNumber</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            </div>
+
+            <div class="col-xl-5">
+                <div class="card">
+                    <div class="card-header" id="attribute-editor-title">New attribute</div>
+                    <div class="card-body">
+                        <form id="attribute-form" class="vstack gap-3">
+                            <input id="attribute-id" type="hidden"/>
+                            <input id="attribute-version" type="hidden" value="0"/>
+
+                            <div>
+                                <label for="attribute-name" class="form-label">Name</label>
+                                <input id="attribute-name" class="form-control" maxlength="200" required/>
+                            </div>
+                            <div>
+                                <label for="attribute-category" class="form-label">Category</label>
+                                <input id="attribute-category"
+                                       class="form-control"
+                                       list="attribute-categories"
+                                       maxlength="100"
+                                       required/>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save</button>
+                                <button id="new-attribute" type="button" class="btn btn-outline-secondary">New</button>
+                                <button id="delete-attribute"
+                                        type="button"
+                                        class="btn btn-outline-danger"
+                                        disabled>
+                                    Delete
+                                </button>
+                            </div>
+                        </form>
+                        <div id="attribute-status" class="small mt-2" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="cvs-panel" class="tab-pane fade">
+        <div class="card">
+            <div class="card-header">Published candidate CVs</div>
+            @if (Model.PublishedCvs.Count == 0)
+            {
+                <div class="card-body text-body-secondary">No published CVs found.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Position</th>
+                            <th>Likes</th>
+                            <th>Updated</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var cv in Model.PublishedCvs)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="View"
+                                       asp-action="Cv"
+                                       asp-route-cvId="@cv.CvId">@cv.CandidateName</a>
+                                </td>
+                                <td>@cv.PositionTitle</td>
+                                <td>@cv.LikeCount</td>
+                                <td>@cv.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+<datalist id="attribute-categories"></datalist>
+
+@section Scripts {
+    <script>
+        (() => {
+            const app = window.cvApp;
+            const positionForm = document.getElementById("position-form");
+            const positionStatus = document.getElementById("position-status");
+            const duplicatePositionButton = document.getElementById("duplicate-position");
+            const deletePositionButton = document.getElementById("delete-position");
+
+            function activateRequestedTab() {
+                const tab = new URLSearchParams(window.location.search).get("tab");
+                const button = tab
+                    ? document.querySelector(`[data-bs-target="#${tab}-panel"]`)
+                    : null;
+                if (button) bootstrap.Tab.getOrCreateInstance(button).show();
+            }
+
+            activateRequestedTab();
+
+            app.request("/api/attributes/categories")
+                .then(categories => {
+                    document.getElementById("attribute-categories").replaceChildren(
+                        ...categories.map(category => {
+                            const option = document.createElement("option");
+                            option.value = category;
+                            return option;
+                        })
+                    );
+                })
+                .catch(() => {});
+
+            function resetPosition() {
+                positionForm.reset();
+                document.getElementById("position-id").value = "";
+                document.getElementById("position-version").value = 0;
+                document.getElementById("position-editor-title").textContent = "New position";
+                document.querySelectorAll(".position-attribute").forEach(input => input.checked = false);
+                document.querySelectorAll(".position-attribute-required").forEach(input => input.checked = true);
+                duplicatePositionButton.disabled = true;
+                deletePositionButton.disabled = true;
+                positionStatus.textContent = "";
+            }
+
+            document.getElementById("new-position").addEventListener("click", resetPosition);
+
+            async function loadPosition(positionId) {
+                try {
+                    const position = await app.request(`/api/positions/${positionId}`);
+                    resetPosition();
+                    document.getElementById("position-id").value = position.positionId;
+                    document.getElementById("position-version").value = position.version;
+                    document.getElementById("position-title").value = position.title;
+                    document.getElementById("position-description").value = position.shortDescription ?? "";
+                    document.getElementById("position-tags").value = position.projectTags.join(", ");
+                    document.getElementById("position-editor-title").textContent = "Edit position";
+
+                    position.attributes.forEach(attribute => {
+                        const row = document.querySelector(
+                            `.position-attribute-row[data-attribute-id="${attribute.attributeId}"]`
+                        );
+                        if (row) {
+                            row.querySelector(".position-attribute").checked = true;
+                            row.querySelector(".position-attribute-required").checked = attribute.isRequired;
+                        }
+                    });
+                    duplicatePositionButton.disabled = false;
+                    deletePositionButton.disabled = false;
+                } catch (error) {
+                    app.showStatus(positionStatus, error.message, true);
+                }
+            }
+
+            document.querySelectorAll(".position-selector").forEach(selector => {
+                selector.addEventListener("change", () => loadPosition(selector.value));
+            });
+
+            positionForm.addEventListener("submit", async event => {
+                event.preventDefault();
+                const positionId = document.getElementById("position-id").value;
+                const attributes = [...document.querySelectorAll(".position-attribute:checked")]
+                    .map((input, index) => ({
+                        attributeId: input.value,
+                        isRequired: input.closest(".position-attribute-row")
+                            .querySelector(".position-attribute-required").checked,
+                        displayOrder: index
+                    }));
+                positionStatus.textContent = "Saving...";
+                positionStatus.className = "small mt-2 text-body-secondary";
+
+                try {
+                    await app.request(
+                        positionId ? `/api/positions/${positionId}` : "/api/positions",
+                        {
+                            method: positionId ? "PUT" : "POST",
+                            body: {
+                                title: document.getElementById("position-title").value,
+                                shortDescription: document.getElementById("position-description").value,
+                                attributes,
+                                projectTags: app.splitList(document.getElementById("position-tags").value),
+                                version: Number(document.getElementById("position-version").value)
+                            }
+                        }
+                    );
+                    window.location.assign("/recruit?tab=positions");
+                } catch (error) {
+                    app.showStatus(positionStatus, error.message, true);
+                }
+            });
+
+            duplicatePositionButton.addEventListener("click", async () => {
+                const positionId = document.getElementById("position-id").value;
+                if (!positionId) return;
+                try {
+                    await app.request(`/api/positions/${positionId}/duplicate`, { method: "POST" });
+                    window.location.assign("/recruit?tab=positions");
+                } catch (error) {
+                    app.showStatus(positionStatus, error.message, true);
+                }
+            });
+
+            deletePositionButton.addEventListener("click", async () => {
+                const positionId = document.getElementById("position-id").value;
+                if (!positionId || !confirm("Delete this position? Its CVs will be hidden.")) return;
+                try {
+                    await app.request(`/api/positions/${positionId}`, { method: "DELETE" });
+                    window.location.assign("/recruit?tab=positions");
+                } catch (error) {
+                    app.showStatus(positionStatus, error.message, true);
+                }
+            });
+
+            const attributeForm = document.getElementById("attribute-form");
+            const attributeStatus = document.getElementById("attribute-status");
+            const deleteAttributeButton = document.getElementById("delete-attribute");
+
+            function resetAttribute() {
+                attributeForm.reset();
+                document.getElementById("attribute-id").value = "";
+                document.getElementById("attribute-version").value = 0;
+                document.getElementById("attribute-editor-title").textContent = "New attribute";
+                deleteAttributeButton.disabled = true;
+                attributeStatus.textContent = "";
+            }
+
+            document.getElementById("new-attribute").addEventListener("click", resetAttribute);
+
+            document.querySelectorAll(".attribute-selector").forEach(selector => {
+                selector.addEventListener("change", () => {
+                    document.getElementById("attribute-id").value = selector.value;
+                    document.getElementById("attribute-version").value = selector.dataset.version;
+                    document.getElementById("attribute-name").value = selector.dataset.name;
+                    document.getElementById("attribute-category").value = selector.dataset.category;
+                    document.getElementById("attribute-editor-title").textContent = "Edit attribute";
+                    deleteAttributeButton.disabled = selector.dataset.system === "true";
+                    attributeStatus.textContent = selector.dataset.system === "true"
+                        ? "System attributes cannot be deleted."
+                        : "";
+                });
+            });
+
+            attributeForm.addEventListener("submit", async event => {
+                event.preventDefault();
+                const attributeId = document.getElementById("attribute-id").value;
+                try {
+                    await app.request(
+                        attributeId ? `/api/attributes/${attributeId}` : "/api/attributes",
+                        {
+                            method: attributeId ? "PUT" : "POST",
+                            body: {
+                                name: document.getElementById("attribute-name").value,
+                                category: document.getElementById("attribute-category").value,
+                                version: Number(document.getElementById("attribute-version").value)
+                            }
+                        }
+                    );
+                    window.location.assign("/recruit?tab=attributes");
+                } catch (error) {
+                    app.showStatus(attributeStatus, error.message, true);
+                }
+            });
+
+            deleteAttributeButton.addEventListener("click", async () => {
+                const attributeId = document.getElementById("attribute-id").value;
+                if (!attributeId || !confirm("Delete this attribute from the library?")) return;
+                try {
+                    await app.request(`/api/attributes/${attributeId}`, { method: "DELETE" });
+                    window.location.assign("/recruit?tab=attributes");
+                } catch (error) {
+                    app.showStatus(attributeStatus, error.message, true);
+                }
+            });
+        })();
+    </script>
+}

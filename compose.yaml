@@ -1,0 +1,15 @@
+﻿services:
+  db:
+    image: postgres:16
+    container_name: courseprojdbco
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fakedindb
+    ports:
+      - "5432:5432"
+    volumes:
+      - course_project_pgdata:/var/lib/postgresql/data
+
+volumes:
+  course_project_pgdata:

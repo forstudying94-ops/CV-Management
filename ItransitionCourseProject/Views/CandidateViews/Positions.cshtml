@@ -1,0 +1,138 @@
+@model List<ItransitionCourseProject.Models.ViewModels.PositionListItem>
+
+@{
+    ViewData["Title"] = "Positions";
+    var canCreateCv = User.IsInRole(nameof(UserRole.Candidate));
+}
+
+@if (canCreateCv)
+{
+    @Html.AntiForgeryToken()
+}
+
+<div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Positions</h1>
+        <p class="text-body-secondary mb-0">Available CV templates created by recruiters.</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-controller="View" asp-action="Positions" method="get" class="row g-3 align-items-end">
+            <div class="col-md-10">
+                <label for="search" class="form-label">Search</label>
+                <input id="search"
+                       name="search"
+                       value="@Context.Request.Query["search"]"
+                       class="form-control"
+                       placeholder="Title or description"/>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-secondary">
+        No positions found.
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var position in Model)
+        {
+            <div class="col-md-6 col-xl-4">
+                <article class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <h2 class="h5">
+                                <a asp-controller="View"
+                                   asp-action="Position"
+                                   asp-route-positionId="@position.PositionId"
+                                   class="text-decoration-none">@position.Title</a>
+                            </h2>
+                        </div>
+
+                        <p class="text-body-secondary">
+                            @(string.IsNullOrWhiteSpace(position.ShortDescription)
+                                ? "No description."
+                                : position.ShortDescription)
+                        </p>
+
+                        <dl class="row small mb-0">
+                            <dt class="col-7">Created CVs</dt>
+                            <dd class="col-5 text-end">@position.CvCount</dd>
+
+                            <dt class="col-7">Updated</dt>
+                            <dd class="col-5 text-end">@position.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy")</dd>
+                        </dl>
+                    </div>
+
+                    @if (position.ProjectTags.Count > 0 || canCreateCv)
+                    {
+                        <div class="card-footer">
+                            @if (position.ProjectTags.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    @foreach (var tag in position.ProjectTags)
+                                    {
+                                        <span class="badge text-bg-light border">@tag</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (canCreateCv)
+                            {
+                                <button type="button"
+                                        class="btn btn-primary w-100 create-cv-button"
+                                        data-position-id="@position.PositionId">
+                                    Create CV
+                                </button>
+                                <div class="create-cv-status small mt-2" role="status"></div>
+                            }
+                        </div>
+                    }
+                </article>
+            </div>
+        }
+    </div>
+}
+
+@if (canCreateCv)
+{
+    @section Scripts {
+        <script>
+            (() => {
+                document.querySelectorAll(".create-cv-button").forEach(button => {
+                    button.addEventListener("click", async () => {
+                        const status = button.parentElement.querySelector(".create-cv-status");
+
+                        button.disabled = true;
+                        button.textContent = "Creating...";
+                        status.textContent = "";
+
+                        try {
+                            const cv = await window.cvApp.request(
+                                `/api/cvs/for-position/${button.dataset.positionId}`,
+                                {
+                                method: "POST",
+                            });
+                            window.location.assign(`/cvs/${cv.cvId}`);
+                        } catch (error) {
+                            status.textContent = error.message;
+                            status.className = "create-cv-status small mt-2 text-danger";
+                            button.disabled = false;
+                            button.textContent = "Create CV";
+                        }
+                    });
+                });
+            })();
+        </script>
+    }
+}

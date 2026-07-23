@@ -1,0 +1,87 @@
+@model ItransitionCourseProject.Models.ViewModels.LoginRequest
+@{
+    ViewData["Title"] = "Sign in";
+}
+
+<div class="auth-shell">
+    <section class="auth-card">
+    <h1 class="h2 mb-4">Login</h1>
+
+    <form asp-controller="View" asp-action="Login" method="post" class="vstack gap-3">
+        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]"/>
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger">
+        </div>
+
+        <div>
+            <label asp-for="Email"
+                   class="form-label">
+            </label>
+
+            <input asp-for="Email"
+                   class="form-control"
+                   autocomplete="email"/>
+
+            <span asp-validation-for="Email"
+                  class="text-danger">
+            </span>
+        </div>
+
+        <div>
+            <label asp-for="Password"
+                   class="form-label">
+            </label>
+
+            <input asp-for="Password"
+                   type="password"
+                   class="form-control"
+                   autocomplete="current-password"/>
+
+            <span asp-validation-for="Password"
+                  class="text-danger">
+            </span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+    <div class="text-center">
+        <span>Or continue with</span>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-sm-6">
+            <a asp-controller="Auth"
+               asp-action="ExternalLogin"
+               asp-route-provider="Google"
+               class="btn btn-outline-secondary w-100">
+                <span class="fw-bold me-2">G</span>
+                Google
+            </a>
+        </div>
+
+        <div class="col-sm-6">
+            <a asp-controller="Auth"
+               asp-action="ExternalLogin"
+               asp-route-provider="Facebook"
+               class="btn btn-outline-secondary w-100">
+                <span class="fw-bold me-2">f</span>
+                Facebook
+            </a>
+        </div>
+    </div>
+    <div class="row g-2">
+        <div class=col-sm-6>
+            <a asp-controller="View" asp-action="RegisterCandidate" class="btn btn-outline-secondary w-100">Register as candidate</a>
+        </div>
+        
+        <div class="col-sm-6">
+            <a asp-controller="View" asp-action="RegisterRecruiter" class="btn btn-outline-secondary w-100">Register as recruiter</a>
+        </div>
+    </div>
+ </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial"/>
+}

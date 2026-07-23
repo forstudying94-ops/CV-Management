@@ -1,0 +1,480 @@
+@model ItransitionCourseProject.Models.ViewModels.ProfilePageViewModel
+
+@{
+    ViewData["Title"] = "My profile";
+}
+
+<div class="mb-4">
+    <h1 class="mb-1">My profile</h1>
+    <p class="text-body-secondary mb-0">
+        Profile values are reused in your CVs.
+    </p>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#me" type="button">Me</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#info" type="button">Info</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cvs" type="button">CVs</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <section id="me" class="tab-pane fade show active">
+        <div class="card">
+            <div class="card-header">Personal information</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    @if (!string.IsNullOrWhiteSpace(Model.Me.ProfilePicUrl))
+                    {
+                        <img src="@Model.Me.ProfilePicUrl"
+                             class="rounded border"
+                             width="72"
+                             height="72"
+                             alt="Profile photo"
+                             style="object-fit: cover"/>
+                    }
+
+                    <div id="avatar-drop-zone" class="border rounded p-3">
+                        <label for="avatar" class="form-label">Profile photo</label>
+                        <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" class="form-control"/>
+                        <div class="form-text">Click to choose a JPG, PNG, WEBP or HEIC file, or drop it here.</div>
+                        <div id="avatar-status" class="small mt-2" role="status"></div>
+                    </div>
+                </div>
+
+                <form id="profile-me-form" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserVersion" value="@Model.Me.UserVersion"/>
+                    <input type="hidden" name="ProfileVersion" value="@Model.Me.ProfileVersion"/>
+
+                    <div class="col-md-6">
+                        <label for="firstName" class="form-label">First name</label>
+                        <input id="firstName"
+                               name="FirstName"
+                               value="@Model.Me.FirstName"
+                               class="form-control"
+                               maxlength="100"
+                               required/>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="lastName" class="form-label">Last name</label>
+                        <input id="lastName"
+                               name="LastName"
+                               value="@Model.Me.LastName"
+                               class="form-control"
+                               maxlength="100"
+                               required/>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="location" class="form-label">Location</label>
+                        <input id="location"
+                               name="Location"
+                               value="@Model.Me.Location"
+                               class="form-control"
+                               maxlength="200"
+                               required/>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email" value="@Model.Me.Email" class="form-control" readonly/>
+                    </div>
+
+                    <div class="col-12">
+                        <button id="save-profile" type="button" class="btn btn-primary">Save profile</button>
+                        <span id="profile-save-status" class="small ms-2" role="status"></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section id="info" class="tab-pane fade">
+        <div class="card mb-4">
+            <div class="card-header">Add attribute</div>
+            <div class="card-body">
+                @if (Model.AvailableAttributes.Items.Count == 0)
+                {
+                    <span class="text-body-secondary">All available attributes are already in the profile.</span>
+                }
+                else
+                {
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input id="attribute-prefix"
+                                   class="form-control"
+                                   placeholder="Search by name prefix"/>
+                        </div>
+                        <div class="col-md-4">
+                            <input id="attribute-category"
+                                   class="form-control"
+                                   placeholder="Category"/>
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button id="search-profile-attributes"
+                                    type="button"
+                                    class="btn btn-outline-secondary">
+                                Search
+                            </button>
+                        </div>
+                        <div class="col-md-9">
+                            <select id="available-attribute" class="form-select">
+                                @foreach (var item in Model.AvailableAttributes.Items)
+                                {
+                                    <option value="@item.AttributeId">
+                                        @item.Name — @item.Category
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button id="add-profile-attribute" type="button" class="btn btn-primary">Add</button>
+                        </div>
+                    </div>
+                    <div id="add-attribute-status" class="small mt-3" role="status"></div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Profile attributes</div>
+            <div class="card-body">
+                @if (Model.Attributes.Count == 0)
+                {
+                    <span class="text-body-secondary">No attributes added.</span>
+                }
+                else
+                {
+                    <div class="vstack gap-3">
+                        @foreach (var item in Model.Attributes)
+                        {
+                            <div class="border rounded p-3 profile-attribute"
+                                 data-attribute-id="@item.AttributeId"
+                                 data-version="@item.ValueVersion">
+                                <div class="d-flex justify-content-between gap-3 mb-2">
+                                    <div>
+                                        <strong>@item.Name</strong>
+                                        <span class="text-body-secondary small">(@item.Category)</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger delete-profile-attribute">
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <textarea class="form-control profile-attribute-value" rows="3">@item.Value</textarea>
+
+                                <div class="attribute-save-status small mt-2 text-body-secondary" role="status"></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section id="cvs" class="tab-pane fade">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">My CVs</h2>
+            <a asp-controller="View" asp-action="Positions" class="btn btn-primary">Create CV</a>
+        </div>
+
+        @if (Model.Cvs.Count == 0)
+        {
+            <div class="alert alert-secondary">No CVs created.</div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table mb-0 align-middle">
+                        <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Status</th>
+                            <th>Likes</th>
+                            <th>Updated</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var cv in Model.Cvs)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="View"
+                                       asp-action="Cv"
+                                       asp-route-cvId="@cv.CvId">@cv.PositionTitle</a>
+                                </td>
+                                <td>@cv.Status</td>
+                                <td>@cv.LikeCount</td>
+                                <td>@cv.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const app = window.cvApp;
+
+            const requestedTab = new URLSearchParams(window.location.search).get("tab");
+            if (requestedTab) {
+                const tabButton = document.querySelector(`[data-bs-target="#${requestedTab}"]`);
+                if (tabButton) {
+                    bootstrap.Tab.getOrCreateInstance(tabButton).show();
+                }
+            }
+
+            const profileForm = document.getElementById("profile-me-form");
+            const profileStatus = document.getElementById("profile-save-status");
+            let profileDirty = false;
+            let profileSaving = false;
+
+            profileForm.querySelectorAll("input:not([type=hidden]):not([readonly])").forEach(input => {
+                input.addEventListener("input", () => profileDirty = true);
+            });
+
+            async function saveProfile(showUnchangedMessage = true) {
+                if (profileSaving || (!profileDirty && !showUnchangedMessage)) return;
+                if (!profileForm.reportValidity()) return;
+
+                profileSaving = true;
+                profileStatus.textContent = "Saving...";
+                profileStatus.className = "small ms-2 text-body-secondary";
+
+                try {
+                    const result = await app.request("/api/profile/me", {
+                        method: "PUT",
+                        body: {
+                            firstName: document.getElementById("firstName").value,
+                            lastName: document.getElementById("lastName").value,
+                            location: document.getElementById("location").value,
+                            userVersion: Number(profileForm.elements.UserVersion.value),
+                            profileVersion: Number(profileForm.elements.ProfileVersion.value)
+                        }
+                    });
+
+                    profileForm.elements.UserVersion.value = result.userVersion;
+                    profileForm.elements.ProfileVersion.value = result.profileVersion;
+                    profileDirty = false;
+                    profileStatus.textContent = "Saved";
+                    profileStatus.className = "small ms-2 text-success";
+                } catch (error) {
+                    profileStatus.textContent = error.message;
+                    profileStatus.className = "small ms-2 text-danger";
+                    if (error.conflict) {
+                        setTimeout(() => window.location.reload(), 1500);
+                    }
+                } finally {
+                    profileSaving = false;
+                }
+            }
+
+            document.getElementById("save-profile").addEventListener("click", () => saveProfile());
+            window.setInterval(() => saveProfile(false), 7000);
+
+            const avatarInput = document.getElementById("avatar");
+            const avatarDropZone = document.getElementById("avatar-drop-zone");
+            const avatarStatus = document.getElementById("avatar-status");
+            const allowedAvatarTypes = new Set([
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/heic",
+                "image/heif"
+            ]);
+            const allowedAvatarExtensions = new Set([
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".webp",
+                ".heic",
+                ".heif"
+            ]);
+            const maxAvatarSizeBytes = 5 * 1024 * 1024;
+
+            function isAllowedAvatarFile(file) {
+                if (file.type && allowedAvatarTypes.has(file.type.toLowerCase())) {
+                    return true;
+                }
+
+                const extension = file.name.includes(".")
+                    ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+                    : "";
+
+                return allowedAvatarExtensions.has(extension);
+            }
+
+            async function uploadAvatar(file) {
+                if (!file) return;
+
+                if (!isAllowedAvatarFile(file)) {
+                    app.showStatus(avatarStatus, "Only JPG, PNG, WEBP and HEIC images are allowed.", true);
+                    avatarInput.value = "";
+                    return;
+                }
+
+                if (file.size > maxAvatarSizeBytes) {
+                    app.showStatus(avatarStatus, "The image cannot be larger than 5 MB.", true);
+                    avatarInput.value = "";
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("avatar", file);
+                avatarStatus.textContent = "Uploading...";
+                avatarStatus.className = "small mt-2 text-body-secondary";
+
+                try {
+                    await app.request("/api/profile/avatar", {
+                        method: "POST",
+                        body: formData
+                    });
+                    window.location.assign("/profile?tab=me");
+                } catch (error) {
+                    app.showStatus(avatarStatus, error.message, true);
+                    avatarInput.value = "";
+                }
+            }
+
+            avatarInput.addEventListener("change", () => uploadAvatar(avatarInput.files[0]));
+            ["dragenter", "dragover"].forEach(eventName => {
+                avatarDropZone.addEventListener(eventName, event => {
+                    event.preventDefault();
+                    avatarDropZone.classList.add("border-primary");
+                });
+            });
+            ["dragleave", "drop"].forEach(eventName => {
+                avatarDropZone.addEventListener(eventName, event => {
+                    event.preventDefault();
+                    avatarDropZone.classList.remove("border-primary");
+                });
+            });
+            avatarDropZone.addEventListener("drop", event => uploadAvatar(event.dataTransfer.files[0]));
+
+            const addButton = document.getElementById("add-profile-attribute");
+            if (addButton) {
+                document.getElementById("search-profile-attributes").addEventListener("click", async () => {
+                    const prefix = document.getElementById("attribute-prefix").value;
+                    const category = document.getElementById("attribute-category").value;
+                    const status = document.getElementById("add-attribute-status");
+
+                    try {
+                        const result = await app.request(
+                            `/api/profile/attributes/available?page=1` +
+                            `&prefix=${encodeURIComponent(prefix)}` +
+                            `&category=${encodeURIComponent(category)}` +
+                            `&recentFirst=true`
+                        );
+                        const select = document.getElementById("available-attribute");
+                        select.replaceChildren(...result.items.map(item => {
+                            const option = document.createElement("option");
+                            option.value = item.attributeId;
+                            option.textContent = `${item.name} — ${item.category}`;
+                            return option;
+                        }));
+                        app.showStatus(status, `${result.totalCount} available attribute(s) found.`);
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                    }
+                });
+
+                addButton.addEventListener("click", async () => {
+                    const attributeId = document.getElementById("available-attribute").value;
+                    const status = document.getElementById("add-attribute-status");
+                    if (!attributeId) {
+                        app.showStatus(status, "Select an attribute first.", true);
+                        return;
+                    }
+
+                    addButton.disabled = true;
+                    status.textContent = "Adding...";
+                    status.className = "small mt-3 text-body-secondary";
+
+                    try {
+                        await app.request("/api/profile/attributes", {
+                            method: "POST",
+                            body: { attributeId }
+                        });
+                        window.location.assign("/profile?tab=info");
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                        addButton.disabled = false;
+                    }
+                });
+            }
+
+            document.querySelectorAll(".profile-attribute-value").forEach(input => {
+                input.addEventListener("change", async () => {
+                    const attribute = input.closest(".profile-attribute");
+                    const status = attribute.querySelector(".attribute-save-status");
+                    const value = input.type === "checkbox"
+                        ? String(input.checked)
+                        : input.value;
+
+                    input.disabled = true;
+                    status.textContent = "Saving...";
+                    status.className = "attribute-save-status small mt-2 text-body-secondary";
+
+                    try {
+                        const result = await app.request(
+                            `/api/profile/attributes/${attribute.dataset.attributeId}`,
+                            {
+                            method: "PUT",
+                            body: {
+                                value,
+                                version: Number(attribute.dataset.version)
+                            }
+                        });
+
+                        attribute.dataset.version = result.version;
+                        status.textContent = "Saved";
+                        status.className = "attribute-save-status small mt-2 text-success";
+                    } catch (error) {
+                        status.textContent = error.message;
+                        status.className = "attribute-save-status small mt-2 text-danger";
+                        if (error.conflict) {
+                            setTimeout(() => window.location.assign("/profile?tab=info"), 1500);
+                        }
+                    } finally {
+                        input.disabled = false;
+                    }
+                });
+            });
+
+            document.querySelectorAll(".delete-profile-attribute").forEach(button => {
+                button.addEventListener("click", async () => {
+                    const attribute = button.closest(".profile-attribute");
+                    const status = attribute.querySelector(".attribute-save-status");
+                    if (!confirm("Remove this attribute from the profile?")) return;
+
+                    try {
+                        await app.request(
+                            `/api/profile/attributes/${attribute.dataset.attributeId}`,
+                            { method: "DELETE" }
+                        );
+                        window.location.assign("/profile?tab=info");
+                    } catch (error) {
+                        app.showStatus(status, error.message, true);
+                    }
+                });
+            });
+
+        })();
+    </script>
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="CV management platform for candidates and recruiters"/>
+    <title>@ViewData["Title"] · CV Forge</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body>
+<header class="site-header">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-xl">
+            <a class="navbar-brand" asp-controller="View" asp-action="Index">
+                <span class="brand-mark">CV</span>
+                <span>CV Forge</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navigation"
+                    aria-controls="main-navigation" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="main-navigation">
+                <ul class="navbar-nav me-auto ms-lg-4">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="View" asp-action="Index">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="View" asp-action="Positions">Positions</a>
+                    </li>
+                </ul>
+                <div class="navbar-actions">
+                    <button class="btn btn-icon" id="theme-toggle" type="button" aria-label="Switch color theme">
+                        <span id="theme-icon" aria-hidden="true">☾</span>
+                    </button>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        if (User.IsInRole(nameof(UserRole.Candidate)))
+                        {
+                            <a asp-controller="View" asp-action="Profile" class="btn btn-outline-secondary">
+                                Profile
+                            </a>
+                        }
+                        else if (User.IsInRole(nameof(UserRole.Recruiter)))
+                        {
+                            <a asp-controller="View" asp-action="Recruit" class="btn btn-outline-secondary">
+                                Recruitment
+                            </a>
+                        }
+                        else if (User.IsInRole(nameof(UserRole.Admin)))
+                        {
+                            <a asp-controller="View" asp-action="Admin" class="btn btn-outline-secondary">
+                                Admin panel
+                            </a>
+                        }
+
+                        <form asp-controller="View"
+                              asp-action="Logout"
+                              method="post"
+                              class="d-inline">
+                            @Html.AntiForgeryToken()
+
+                            <button type="submit" class="btn btn-outline-danger">
+                                Logout
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="View"
+                           asp-action="Login"
+                           class="btn btn-outline-secondary">
+                            Sign in
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<main class="site-main">
+    <div class="container-xl">
+        @RenderBody()
+    </div>
+</main>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

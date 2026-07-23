@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: cv-management-system
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./ItransitionCourseProject/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: "true"
+      - key: Database__MigrateOnStartup
+        value: "true"
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Cloudinary__CloudName
+        sync: false
+      - key: Cloudinary__ApiKey
+        sync: false
+      - key: Cloudinary__ApiSecret
+        sync: false
+      - key: Authentication__Google__ClientId
+        sync: false
+      - key: Authentication__Google__ClientSecret
+        sync: false
+      - key: Authentication__Facebook__ClientId
+        sync: false
+      - key: Authentication__Facebook__ClientSecret
+        sync: false
+      - key: Seed__Admin__Email
+        sync: false
+      - key: Seed__Admin__Password
+        sync: false
+
+databases:
+  - name: cv-management-db
+    plan: free
+    region: frankfurt
+    databaseName: cv_management
+    user: cv_management_user
