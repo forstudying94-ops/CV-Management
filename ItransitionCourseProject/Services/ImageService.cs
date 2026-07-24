@@ -75,12 +75,7 @@ public sealed class CloudinaryImageService : IImageService {
         {
             throw new InvalidOperationException(result.Error.Message);
         }
-
-        if (result.SecureUrl is null)
-        {
-            throw new InvalidOperationException("Cloudinary did not return an image URL.");
-        }
-
+        
         return new UploadedImage(result.SecureUrl.ToString(), result.PublicId);
     }
 

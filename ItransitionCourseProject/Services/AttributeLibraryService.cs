@@ -29,9 +29,7 @@ public class AttributeLibraryService : IAttributeLibraryService {
 
     public async Task<PagedResult<AttributeLibraryItem>> GetAttributesAsync(int page, string? prefix, string? category, CancellationToken token = default) {
         page = Math.Max(page, 1);
-        var query = _db.Attributes
-            .AsNoTracking()
-            .Where(attribute => !attribute.IsDeleted);
+        var query = _db.Attributes.AsNoTracking().Where(attribute => !attribute.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(prefix))
         {
@@ -46,11 +44,8 @@ public class AttributeLibraryService : IAttributeLibraryService {
         }
 
         var totalCount = await query.CountAsync(token);
-        var items = await SelectItems(query
-                .OrderBy(attribute => attribute.AttributeName)
-                .Skip((page - 1) * PageSize)
-                .Take(PageSize))
-            .ToListAsync(token);
+        var items = await SelectItems(query.OrderBy(attribute => attribute.AttributeName)
+                .Skip((page - 1) * PageSize).Take(PageSize)).ToListAsync(token);
 
         return new PagedResult<AttributeLibraryItem>
         {
@@ -62,39 +57,25 @@ public class AttributeLibraryService : IAttributeLibraryService {
     }
 
     public Task<List<AttributeLibraryItem>> GetAllAttributesAsync(CancellationToken token = default) {
-        return SelectItems(_db.Attributes
-                .AsNoTracking()
-                .Where(attribute => !attribute.IsDeleted)
-                .OrderBy(attribute => attribute.Category)
-                .ThenBy(attribute => attribute.AttributeName))
-            .ToListAsync(token);
+        return SelectItems(_db.Attributes.AsNoTracking().Where(attribute => !attribute.IsDeleted)
+                .OrderBy(attribute => attribute.Category).ThenBy(attribute => attribute.AttributeName)).ToListAsync(token);
     }
 
     public Task<AttributeLibraryItem?> GetAttributeAsync(Guid attributeId, CancellationToken token = default) {
-        return SelectItems(_db.Attributes
-                .AsNoTracking()
-                .Where(attribute => attribute.AttributeId == attributeId &&
-                                    !attribute.IsDeleted))
+        return SelectItems(_db.Attributes.AsNoTracking().Where(attribute => attribute.AttributeId == attributeId && !attribute.IsDeleted))
             .FirstOrDefaultAsync(token);
     }
 
     public Task<List<string>> GetCategoriesAsync(CancellationToken token = default) {
-        return _db.Attributes
-            .AsNoTracking()
-            .Where(attribute => !attribute.IsDeleted)
-            .Select(attribute => attribute.Category)
-            .Distinct()
-            .OrderBy(category => category)
-            .ToListAsync(token);
+        return _db.Attributes.AsNoTracking().Where(attribute => !attribute.IsDeleted).Select(attribute => attribute.Category)
+            .Distinct().OrderBy(category => category).ToListAsync(token);
     }
 
     public async Task<AttributeLibraryItem> SaveAttributeAsync(SaveAttributeRequest request, CancellationToken token = default) {
         var preparedName = request.Name.Trim();
         var attributeWithSameName = await _db.Attributes
-            .Where(attribute => attribute.AttributeId != request.AttributeId &&
-                                EF.Functions.ILike(attribute.AttributeName, preparedName))
-            .OrderBy(attribute => attribute.IsDeleted)
-            .FirstOrDefaultAsync(token);
+            .Where(attribute => attribute.AttributeId != request.AttributeId && EF.Functions.ILike(attribute.AttributeName, preparedName))
+            .OrderBy(attribute => attribute.IsDeleted).FirstOrDefaultAsync(token);
 
         Attribute attribute;
         if (request.AttributeId is null)
@@ -172,13 +153,7 @@ public class AttributeLibraryService : IAttributeLibraryService {
     }
 
     private static IQueryable<AttributeLibraryItem> SelectItems(IQueryable<Attribute> query) {
-        return query.Select(attribute => new AttributeLibraryItem
-        {
-            AttributeId = attribute.AttributeId,
-            Name = attribute.AttributeName,
-            Category = attribute.Category,
-            IsSystem = attribute.IsSystem,
-            Version = attribute.Version
-        });
+        return query.Select(attribute => new AttributeLibraryItem { AttributeId = attribute.AttributeId,
+            Name = attribute.AttributeName, Category = attribute.Category, IsSystem = attribute.IsSystem, Version = attribute.Version });
     }
 }

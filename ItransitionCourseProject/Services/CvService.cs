@@ -187,13 +187,7 @@ public class CvService : ICvService {
 
     public async Task<PublishCvResponse> PublishCvAsync(Guid userId, Guid cvId, CancellationToken token = default) {
         var cv = await LoadCvAsync(cvId, tracking: true, token)
-                 ?? throw new KeyNotFoundException("CV not found.");
-
-        if (cv.ProfileForCv.UserId != userId)
-        {
-            throw new UnauthorizedAccessException("You cannot publish another candidate's CV.");
-        }
-
+                 ?? throw new KeyNotFoundException("CV not found");
         var values = cv.ProfileForCv.BindingForProfile.ToDictionary(
             binding => binding.AttributeId,
             binding => binding.ValueForBinding?.Value);
@@ -232,11 +226,11 @@ public class CvService : ICvService {
         var recruiter = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user => user.UserId == recruiterId, token)
-            ?? throw new KeyNotFoundException("Recruiter not found.");
+            ?? throw new KeyNotFoundException("Recruiter not found");
 
         if (recruiter.Role is not (UserRole.Recruiter or UserRole.Admin))
         {
-            throw new UnauthorizedAccessException("Only recruiters can like CVs.");
+            throw new UnauthorizedAccessException("Only recruiters can like CVs");
         }
 
         var cvInfo = await _db.Cvs
@@ -253,7 +247,7 @@ public class CvService : ICvService {
 
         if (cvInfo is null)
         {
-            throw new KeyNotFoundException("Published CV not found.");
+            throw new KeyNotFoundException("CV not found");
         }
 
         var like = await _db.CvLikes.FirstOrDefaultAsync(

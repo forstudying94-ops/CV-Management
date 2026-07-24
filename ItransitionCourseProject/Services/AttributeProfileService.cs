@@ -64,10 +64,9 @@ public class AttributeProfileService : IAttributeProfileService {
 
         var query = _db.Attributes
             .AsNoTracking()
-            .Where(attribute => !attribute.IsDeleted &&
-                                !_db.ProfileAttributeBindings.Any(binding =>
-                                    binding.ProfileCandidateId == profileId &&
-                                    binding.AttributeId == attribute.AttributeId));
+            .Where(attribute => !attribute.IsDeleted
+                                && !_db.ProfileAttributeBindings.Any(binding => binding.ProfileCandidateId == profileId 
+                                    && binding.AttributeId == attribute.AttributeId));
 
         if (!string.IsNullOrWhiteSpace(prefix))
         {

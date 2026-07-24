@@ -68,8 +68,7 @@ public class ProfileService : IProfileService {
         return _db.ProfileCandidates
             .AsNoTracking()
             .Where(profile => profile.UserId == userId)
-            .Select(profile => new ProfileMeResponse
-            {
+            .Select(profile => new ProfileMeResponse {
                 ProfileId = profile.ProfileCandidateId,
                 FirstName = profile.UserForProfile.FirstName,
                 LastName = profile.UserForProfile.LastName,

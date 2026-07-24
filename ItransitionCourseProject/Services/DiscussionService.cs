@@ -21,25 +21,25 @@ public class DiscussionService : IDiscussionService {
     public async Task<DiscussionItem> AddDiscussionAsync(Guid positionId, Guid authorId, string contentMarkdown, CancellationToken token = default) {
         if (string.IsNullOrWhiteSpace(contentMarkdown))
         {
-            throw new InvalidOperationException("Discussion message cannot be empty.");
+            throw new InvalidOperationException("Discussion message cannot be empty");
         }
 
         if (contentMarkdown.Length > 5_000)
         {
-            throw new InvalidOperationException("Discussion message cannot be longer than 5000 characters.");
+            throw new InvalidOperationException("Discussion message cannot be longer than 5000 characters");
         }
 
         if (!await _db.Positions.AnyAsync(
                 position => position.PositionId == positionId && !position.IsDeleted,
                 token))
         {
-            throw new KeyNotFoundException("Position not found.");
+            throw new KeyNotFoundException("Position not found");
         }
 
         var author = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user => user.UserId == authorId, token)
-            ?? throw new KeyNotFoundException("Author not found.");
+            ?? throw new KeyNotFoundException("Author not found");
 
         var discussion = new Discussion
         {

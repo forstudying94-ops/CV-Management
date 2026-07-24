@@ -56,7 +56,7 @@ public class AdminService : IAdminService {
     public async Task<int> ChangeBlockedAsync(Guid currentAdminId, Guid userId, ChangeBlockedRequest request, CancellationToken token = default) {
         if (currentAdminId == userId && request.IsBlocked)
         {
-            throw new InvalidOperationException("Administrator cannot block the currently used account.");
+            throw new InvalidOperationException("Administrator cannot do this");
         }
 
         var user = await FindUserAsync(userId, token);
@@ -109,16 +109,14 @@ public class AdminService : IAdminService {
     }
 
     private async Task<User> FindUserAsync(Guid userId, CancellationToken token) {
-        return await _db.Users
-                   .Include(user => user.ProfileForUser)
-                   .FirstOrDefaultAsync(user => user.UserId == userId, token)
-               ?? throw new KeyNotFoundException("User not found.");
+        return await _db.Users.Include(user => user.ProfileForUser).FirstOrDefaultAsync(user => user.UserId == userId, token)
+               ?? throw new KeyNotFoundException("User not found");
     }
 
     private static void CheckVersion(User user, int version) {
         if (user.Version != version)
         {
-            throw new DbUpdateConcurrencyException("User was changed by another administrator.");
+            throw new DbUpdateConcurrencyException("User was changed by another admin");
         }
     }
 }

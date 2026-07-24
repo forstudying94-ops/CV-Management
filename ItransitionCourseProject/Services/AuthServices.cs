@@ -104,7 +104,7 @@ public sealed class AuthServices : IAuthServices
         var normalizedEmail = NormalizeEmail(email);
         if (await _db.Users.AnyAsync(user => user.Email == normalizedEmail, token))
         {
-            throw new InvalidOperationException("A user with this email already exists.");
+            throw new InvalidOperationException("A user with this email already exists, you may login at login menu");
         }
         var userId = Guid.NewGuid();
         var user = new User { UserId = userId, FirstName = firstName.Trim(), LastName = lastName.Trim(),
